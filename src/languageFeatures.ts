@@ -6,7 +6,7 @@
 
 import { LanguageServiceDefaultsImpl } from './monaco.contribution';
 import * as ts from './lib/typescriptServices';
-import { TypeScriptWorker } from './tsWorker';
+import { TypeScriptWorker, uriToFilename } from './tsWorker';
 
 import Uri = monaco.Uri;
 import Position = monaco.Position;
@@ -160,10 +160,10 @@ export class DiagnostcsAdapter extends Adapter {
 			const promises: Promise<ts.Diagnostic[]>[] = [];
 			const { noSyntaxValidation, noSemanticValidation } = this._defaults.getDiagnosticsOptions();
 			if (!noSyntaxValidation) {
-				promises.push(worker.getSyntacticDiagnostics(resource.toString()));
+				promises.push(worker.getSyntacticDiagnostics(uriToFilename(resource)));
 			}
 			if (!noSemanticValidation) {
-				promises.push(worker.getSemanticDiagnostics(resource.toString()));
+				promises.push(worker.getSemanticDiagnostics(uriToFilename(resource)));
 			}
 			return Promise.all(promises);
 		}).then(diagnostics => {
@@ -215,7 +215,7 @@ export class SuggestAdapter extends Adapter implements monaco.languages.Completi
 		const offset = this._positionToOffset(resource, position);
 
 		return this._worker(resource).then(worker => {
-			return worker.getCompletionsAtPosition(resource.toString(), offset);
+			return worker.getCompletionsAtPosition(uriToFilename(resource), offset);
 		}).then(info => {
 			if (!info) {
 				return;
@@ -243,7 +243,7 @@ export class SuggestAdapter extends Adapter implements monaco.languages.Completi
 		const position = myItem.position;
 
 		return this._worker(resource).then(worker => {
-			return worker.getCompletionEntryDetails(resource.toString(),
+			return worker.getCompletionEntryDetails(uriToFilename(resource),
 				this._positionToOffset(resource, position),
 				myItem.label);
 
@@ -304,7 +304,7 @@ export class SignatureHelpAdapter extends Adapter implements monaco.languages.Si
 
 	provideSignatureHelp(model: monaco.editor.IReadOnlyModel, position: Position, token: CancellationToken): Thenable<monaco.languages.SignatureHelp> {
 		let resource = model.uri;
-		return this._worker(resource).then(worker => worker.getSignatureHelpItems(resource.toString(), this._positionToOffset(resource, position))).then(info => {
+		return this._worker(resource).then(worker => worker.getSignatureHelpItems(uriToFilename(resource), this._positionToOffset(resource, position))).then(info => {
 
 			if (!info) {
 				return;
@@ -355,7 +355,7 @@ export class QuickInfoAdapter extends Adapter implements monaco.languages.HoverP
 		let resource = model.uri;
 
 		return this._worker(resource).then(worker => {
-			return worker.getQuickInfoAtPosition(resource.toString(), this._positionToOffset(resource, position));
+			return worker.getQuickInfoAtPosition(uriToFilename(resource), this._positionToOffset(resource, position));
 		}).then(info => {
 			if (!info) {
 				return;
@@ -390,7 +390,7 @@ export class OccurrencesAdapter extends Adapter implements monaco.languages.Docu
 		const resource = model.uri;
 
 		return this._worker(resource).then(worker => {
-			return worker.getOccurrencesAtPosition(resource.toString(), this._positionToOffset(resource, position));
+			return worker.getOccurrencesAtPosition(uriToFilename(resource), this._positionToOffset(resource, position));
 		}).then(entries => {
 			if (!entries) {
 				return;
@@ -413,7 +413,7 @@ export class DefinitionAdapter extends Adapter {
 		const resource = model.uri;
 
 		return this._worker(resource).then(worker => {
-			return worker.getDefinitionAtPosition(resource.toString(), this._positionToOffset(resource, position));
+			return worker.getDefinitionAtPosition(uriToFilename(resource), this._positionToOffset(resource, position));
 		}).then(entries => {
 			if (!entries) {
 				return;
@@ -441,7 +441,7 @@ export class ReferenceAdapter extends Adapter implements monaco.languages.Refere
 		const resource = model.uri;
 
 		return this._worker(resource).then(worker => {
-			return worker.getReferencesAtPosition(resource.toString(), this._positionToOffset(resource, position));
+			return worker.getReferencesAtPosition(uriToFilename(resource), this._positionToOffset(resource, position));
 		}).then(entries => {
 			if (!entries) {
 				return;
@@ -468,7 +468,7 @@ export class OutlineAdapter extends Adapter implements monaco.languages.Document
 	public provideDocumentSymbols(model: monaco.editor.IReadOnlyModel, token: CancellationToken): Thenable<monaco.languages.DocumentSymbol[]> {
 		const resource = model.uri;
 
-		return this._worker(resource).then(worker => worker.getNavigationBarItems(resource.toString())).then(items => {
+		return this._worker(resource).then(worker => worker.getNavigationBarItems(uriToFilename(resource))).then(items => {
 			if (!items) {
 				return;
 			}
@@ -583,7 +583,7 @@ export class FormatAdapter extends FormatHelper implements monaco.languages.Docu
 		const resource = model.uri;
 
 		return this._worker(resource).then(worker => {
-			return worker.getFormattingEditsForRange(resource.toString(),
+			return worker.getFormattingEditsForRange(uriToFilename(resource),
 				this._positionToOffset(resource, { lineNumber: range.startLineNumber, column: range.startColumn }),
 				this._positionToOffset(resource, { lineNumber: range.endLineNumber, column: range.endColumn }),
 				FormatHelper._convertOptions(options));
@@ -605,7 +605,7 @@ export class FormatOnTypeAdapter extends FormatHelper implements monaco.language
 		const resource = model.uri;
 
 		return this._worker(resource).then(worker => {
-			return worker.getFormattingEditsAfterKeystroke(resource.toString(),
+			return worker.getFormattingEditsAfterKeystroke(uriToFilename(resource),
 				this._positionToOffset(resource, position),
 				ch, FormatHelper._convertOptions(options));
 		}).then(edits => {

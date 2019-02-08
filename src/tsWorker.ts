@@ -41,14 +41,14 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 	}
 
 	getScriptFileNames(): string[] {
-		let models = this._ctx.getMirrorModels().map(model => model.uri.toString());
+		let models = this._ctx.getMirrorModels().map(model => uriToFilename(model.uri));
 		return models.concat(Object.keys(this._extraLibs));
 	}
 
 	private _getModel(fileName: string): monaco.worker.IMirrorModel {
 		let models = this._ctx.getMirrorModels();
 		for (let i = 0; i < models.length; i++) {
-			if (models[i].uri.toString() === fileName) {
+			if (uriToFilename(models[i].uri) === fileName) {
 				return models[i];
 			}
 		}
@@ -201,6 +201,10 @@ export class TypeScriptWorker implements ts.LanguageServiceHost {
 export interface ICreateData {
 	compilerOptions: ts.CompilerOptions;
 	extraLibs: { [path: string]: string };
+}
+
+export function uriToFilename(uri: monaco.Uri): string {
+    return uri.toString(true)
 }
 
 export function create(ctx: IWorkerContext, createData: ICreateData): TypeScriptWorker {
